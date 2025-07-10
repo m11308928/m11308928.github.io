@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>手勢識別 - Teachable Machine</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: white;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(45deg, #fff, #f0f0f0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .start-button {
+            display: block;
+            margin: 0 auto 30px;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: white;
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+        }
+
+        .start-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
+        }
+
+        .main-content {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .webcam-section {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        #webcam-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        #webcam-container canvas {
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            width: 320px !important;
+            height: 320px !important;
+        }
+
+        .predictions-section {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .predictions-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            text-align: center;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .prediction-item {
+            margin-bottom: 15px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .prediction-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .prediction-label {
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+
+        .prediction-bar-container {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            height: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .prediction-bar {
+            height: 100%;
+            border-radius: 20px;
+            transition: width 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .prediction-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .prediction-percentage {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-weight: bold;
+            font-size: 0.9rem;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .rank-1 .prediction-bar {
+            background: linear-gradient(45deg, #ff4757, #ff6b6b);
+            box-shadow: 0 0 20px rgba(255, 71, 87, 0.5);
+        }
+
+        .rank-2 .prediction-bar {
+            background: linear-gradient(45deg, #ffa502, #ffb347);
+            box-shadow: 0 0 15px rgba(255, 165, 2, 0.4);
+        }
+
+        .rank-3 .prediction-bar {
+            background: linear-gradient(45deg, #747d8c, #a4b0be);
+            box-shadow: 0 0 10px rgba(116, 125, 140, 0.3);
+        }
+
+        .rank-other .prediction-bar {
+            background: linear-gradient(45deg, #2c2c54, #40407a);
+        }
+
+        .status-indicator {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 1.1rem;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            #webcam-container canvas {
+                width: 280px !important;
+                height: 280px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 手勢識別系統</h1>
+        <button class="start-button" onclick="init()">🚀 開始識別</button>
+        
+        <div class="main-content">
+            <div class="webcam-section">
+                <div id="webcam-container"></div>
+                <div class="status-indicator" id="status">點擊開始按鈕以啟動攝像頭</div>
+            </div>
+            
+            <div class="predictions-section">
+                <h3 class="predictions-title">📊 識別結果</h3>
+                <div id="label-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+    <script type="text/javascript">
+        const URL = "https://teachablemachine.withgoogle.com/models/ygOiRtWBW/";
+        let model, webcam, labelContainer, maxPredictions;
+
+        async function init() {
+            try {
+                document.getElementById("status").innerHTML = "🔄 正在加載模型...";
+                
+                const modelURL = URL + "model.json";
+                const metadataURL = URL + "metadata.json";
+
+                model = await tmImage.load(modelURL, metadataURL);
+                maxPredictions = model.getTotalClasses();
+
+                document.getElementById("status").innerHTML = "📹 正在啟動攝像頭...";
+
+                const flip = true;
+                webcam = new tmImage.Webcam(320, 320, flip);
+                await webcam.setup();
+                await webcam.play();
+                window.requestAnimationFrame(loop);
+
+                document.getElementById("webcam-container").appendChild(webcam.canvas);
+                labelContainer = document.getElementById("label-container");
+                
+                // 創建預測結果容器
+                for (let i = 0; i < maxPredictions; i++) {
+                    const predictionItem = document.createElement("div");
+                    predictionItem.className = "prediction-item";
+                    predictionItem.innerHTML = `
+                        <div class="prediction-label" id="label-${i}"></div>
+                        <div class="prediction-bar-container">
+                            <div class="prediction-bar" id="bar-${i}" style="width: 0%"></div>
+                            <div class="prediction-percentage" id="percentage-${i}">0%</div>
+                        </div>
+                    `;
+                    labelContainer.appendChild(predictionItem);
+                }
+                
+                document.getElementById("status").innerHTML = "✅ 識別系統已啟動！";
+                
+            } catch (error) {
+                document.getElementById("status").innerHTML = "❌ 啟動失敗，請重新嘗試";
+                console.error("初始化錯誤:", error);
+            }
+        }
+
+        async function loop() {
+            webcam.update();
+            await predict();
+            window.requestAnimationFrame(loop);
+        }
+
+        async function predict() {
+            try {
+                const prediction = await model.predict(webcam.canvas);
+                
+                // 按照概率排序
+                const sortedPredictions = prediction
+                    .map((pred, index) => ({ ...pred, originalIndex: index }))
+                    .sort((a, b) => b.probability - a.probability);
+
+                // 更新顯示
+                for (let i = 0; i < maxPredictions; i++) {
+                    const pred = sortedPredictions[i];
+                    const percentage = (pred.probability * 100).toFixed(1);
+                    
+                    const labelElement = document.getElementById(`label-${i}`);
+                    const barElement = document.getElementById(`bar-${i}`);
+                    const percentageElement = document.getElementById(`percentage-${i}`);
+                    const itemElement = labelElement.closest('.prediction-item');
+                    
+                    labelElement.innerHTML = pred.className;
+                    barElement.style.width = percentage + '%';
+                    percentageElement.innerHTML = percentage + '%';
+                    
+                    // 移除舊的排名類別
+                    itemElement.classList.remove('rank-1', 'rank-2', 'rank-3', 'rank-other');
+                    
+                    // 添加新的排名類別
+                    if (i === 0) {
+                        itemElement.classList.add('rank-1');
+                    } else if (i === 1) {
+                        itemElement.classList.add('rank-2');
+                    } else if (i === 2) {
+                        itemElement.classList.add('rank-3');
+                    } else {
+                        itemElement.classList.add('rank-other');
+                    }
+                }
+                
+            } catch (error) {
+                console.error("預測錯誤:", error);
+            }
+        }
+    </script>
+</body>
+</html>
